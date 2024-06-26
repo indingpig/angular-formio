@@ -2,7 +2,12 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [Unreleased: 7.5.0-rc.2]
+## 8.0.0-rc.2
+### Changed
+ - Angular 18 upgrade
+ - Update renderer to 5.x
+    
+## 7.5.0-rc.2
 ### Changed
  - Bump follow-redirects from 1.15.4 to 1.15.6
  - Bump es5-ext from 0.10.62 to 0.10.64
@@ -10,6 +15,7 @@ All notable changes to this project will be documented in this file. See [standa
  - Bump follow-redirects from 1.15.3 to 1.15.4
  - FIO-8004: Fixed loader incorrectly showing in embed reports
  - Bump webpack-dev-middleware from 5.3.3 to 5.3.4
+ - FIO-7507: Publish dev tag to npm 
 
 ### Fixed
  - FIO-7443: Fixes authorization error recieved after logout, not allowшng to log in again
