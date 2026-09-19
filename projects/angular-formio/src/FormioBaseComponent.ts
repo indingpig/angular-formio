@@ -1,40 +1,52 @@
-import { Component, ElementRef, EventEmitter, Input, NgZone, OnChanges, OnDestroy, OnInit, Optional, Output, ViewChild } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  EventEmitter,
+  inject,
+  Input,
+  NgZone,
+  OnChanges,
+  OnDestroy,
+  OnInit,
+  Optional,
+  Output,
+  ViewChild,
+  ChangeDetectorRef,
+} from '@angular/core';
 import { FormioService } from './formio.service';
 import { FormioAlerts } from './components/alerts/formio.alerts';
 import { FormioAppConfig } from './formio.config';
-import { FormioError, FormioForm, FormioOptions, FormioRefreshValue } from './formio.common';
+import { AngularFormioOptions, FormioError, FormioForm, FormioRefreshValue } from './formio.common';
 import { assign, get, isEmpty } from 'lodash';
 import { CustomTagsService } from './custom-tags.service';
-import { Utils } from '@formio/js';
+import { Form, Utils, Webform } from '@formio/js';
 import { AlertsPosition } from './types/alerts-position';
 const { Evaluator, fastCloneDeep } = Utils;
 
-@Component({
-  template: ''
-})
+@Component({ template: '' })
 export class FormioBaseComponent implements OnInit, OnChanges, OnDestroy {
   @Input() form?: FormioForm;
   @Input() submission?: any = {};
   @Input() src?: string;
   @Input() url?: string;
   @Input() service?: FormioService;
-  @Input() options?: FormioOptions;
-  @Input() noeval ? = Evaluator.noeval;
+  @Input() options?: Form['options'] & AngularFormioOptions;
+  @Input() noeval? = Evaluator.noeval;
   @Input() formioOptions?: any;
   @Input() renderOptions?: any;
-  @Input() readOnly ? = false;
-  @Input() viewOnly ? = false;
-  @Input() hideLoading ? = false;
+  @Input() readOnly? = false;
+  @Input() viewOnly? = false;
+  @Input() hideLoading? = false;
   @Input() hideComponents?: string[];
   @Input() refresh?: EventEmitter<FormioRefreshValue>;
   @Input() error?: EventEmitter<any>;
   @Input() success?: EventEmitter<object>;
   @Input() submitDone?: EventEmitter<object>;
-  @Input() language?: EventEmitter<string>;
+  @Input() language?: EventEmitter<string> | string;
   @Input() hooks?: any = {};
   @Input() renderer?: any;
-  @Input() watchSubmissionErrors ? = false;
-  @Input() dataTableActions? : any = []
+  @Input() watchSubmissionErrors? = false;
+  @Input() dataTableActions?: any = [];
   @Output() render = new EventEmitter<object>();
   @Output() customEvent = new EventEmitter<object>();
   @Output() fileUploadingStatus = new EventEmitter<string>();
@@ -71,6 +83,7 @@ export class FormioBaseComponent implements OnInit, OnChanges, OnDestroy {
   public isLoading: boolean;
   public noAlerts: boolean;
   public label: string;
+  protected readonly changeDetectorRef: ChangeDetectorRef = inject(ChangeDetectorRef);
 
   constructor(
     public ngZone: NgZone,
@@ -89,29 +102,33 @@ export class FormioBaseComponent implements OnInit, OnChanges, OnDestroy {
 
   getRendererOptions() {
     const extraTags = this.customTags ? this.customTags.tags : [];
-    return assign({}, {
-      icons: get(this.config, 'icons', 'fontawesome'),
-      noAlerts: get(this.options, 'noAlerts', true),
-      readOnly: this.readOnly,
-      viewAsHtml: this.viewOnly,
-      ...(this.viewOnly && { renderMode: "html" }),
-      i18n: get(this.options, 'i18n', null),
-      fileService: get(this.options, 'fileService', null),
-      hooks: this.hooks,
-      sanitizeConfig: {
-        addTags: extraTags
+    return assign(
+      {},
+      {
+        icons: get(this.config, 'icons', 'fontawesome'),
+        noAlerts: get(this.options, 'noAlerts', true),
+        readOnly: this.readOnly,
+        viewAsHtml: this.viewOnly,
+        ...(this.viewOnly && { renderMode: 'html' }),
+        i18n: get(this.options, 'i18n', null),
+        fileService: get(this.options, 'fileService', null),
+        hooks: this.hooks,
+        sanitizeConfig: {
+          addTags: extraTags,
+        },
+        dataTableActions: this.dataTableActions,
       },
-      dataTableActions: this.dataTableActions
-    }, this.renderOptions || {});
+      this.renderOptions || {},
+    );
   }
 
   createRenderer() {
     const Renderer = this.getRenderer();
-    const form = (new Renderer(
+    const form = new Renderer(
       this.formioElement ? this.formioElement.nativeElement : null,
       this.form,
-      this.getRendererOptions()
-    ));
+      this.getRendererOptions(),
+    );
     return form.instance;
   }
 
@@ -137,14 +154,14 @@ export class FormioBaseComponent implements OnInit, OnChanges, OnDestroy {
     }
     this.formio = this.createRenderer();
 
-    if(!this.formio) {
+    if (!this.formio) {
       return;
     }
     this.formio.setSubmission(this.submission, {
-      fromSubmission: false
+      fromSubmission: false,
     });
     if (this.renderOptions && this.renderOptions.validateOnInit) {
-      this.formio.setValue(this.submission, {validateOnInit: true});
+      this.formio.setValue(this.submission, { validateOnInit: true });
     }
     if (this.url) {
       this.setFormUrl(this.url);
@@ -158,6 +175,7 @@ export class FormioBaseComponent implements OnInit, OnChanges, OnDestroy {
     return this.formio.ready.then(() => {
       this.ngZone.run(() => {
         this.isLoading = false;
+        this.changeDetectorRef.markForCheck();
         this.ready.emit(this);
         this.formioReadyResolve(this.formio);
         if (this.formio.submissionReady) {
@@ -170,40 +188,61 @@ export class FormioBaseComponent implements OnInit, OnChanges, OnDestroy {
     });
   }
 
+  // GOTCHA(G-NG04)
   attachFormEvents() {
     this.formio.on('prevPage', (data: any) => this.ngZone.run(() => this.onPrevPage(data)));
     this.formio.on('nextPage', (data: any) => this.ngZone.run(() => this.onNextPage(data)));
-    this.formio.on('change', (value: any, flags: any, isModified: boolean) => this.ngZone.run(() => this.onChange(value, flags, isModified)));
-    this.formio.on('rowAdd', (component: any) =>  this.ngZone.run(() => this.rowAdd.emit(component)));
-    this.formio.on('rowAdded', (data: any, component: any) =>  this.ngZone.run(() => this.rowAdded.emit({component, row: data})));
-    this.formio.on('rowEdit', (data: any, rowIndex: number, index: number, component: any) =>  this.ngZone.run(() => this.rowEdit.emit({component, row: data, rowIndex, index})));
-    this.formio.on('rowEdited', (data: any, rowIndex: number, component: any) =>  this.ngZone.run(() => this.rowEdited.emit({component, row: data, rowIndex})));
-    this.formio.on('rowDelete', (data: any, rowIndex: number, index: number, component: any) =>  this.ngZone.run(() => this.rowDelete.emit({component, row: data, rowIndex, index})));
-    this.formio.on('rowClick', (row: any, rowIndex: number, index: number,component: any) =>  this.ngZone.run(() => this.rowClick.emit({component, row, rowIndex, index})));
-    this.formio.on('rowSelectChange', (selectedRows: any[], component: any) =>  this.ngZone.run(() => this.rowSelectChange.emit({selectedRows, component})));
-    this.formio.on('page', (currentPage: number, component: any) =>  this.ngZone.run(() => this.page.emit({currentPage, component})));
-    this.formio.on('changeItemsPerPage', (itemsPerPage:number) =>  this.ngZone.run(() => this.changeItemsPerPage.emit({itemsPerPage})));
+    this.formio.on('change', (value: any, flags: any, isModified: boolean) =>
+      this.ngZone.run(() => this.onChange(value, flags, isModified)),
+    );
+    this.formio.on('rowAdd', (component: any) =>
+      this.ngZone.run(() => this.rowAdd.emit(component)),
+    );
+    this.formio.on('rowAdded', (data: any, component: any) =>
+      this.ngZone.run(() => this.rowAdded.emit({ component, row: data })),
+    );
+    this.formio.on('rowEdit', (data: any, rowIndex: number, index: number, component: any) =>
+      this.ngZone.run(() => this.rowEdit.emit({ component, row: data, rowIndex, index })),
+    );
+    this.formio.on('rowEdited', (data: any, rowIndex: number, component: any) =>
+      this.ngZone.run(() => this.rowEdited.emit({ component, row: data, rowIndex })),
+    );
+    this.formio.on('rowDelete', (data: any, rowIndex: number, index: number, component: any) =>
+      this.ngZone.run(() => this.rowDelete.emit({ component, row: data, rowIndex, index })),
+    );
+    this.formio.on('rowClick', (row: any, rowIndex: number, index: number, component: any) =>
+      this.ngZone.run(() => this.rowClick.emit({ component, row, rowIndex, index })),
+    );
+    this.formio.on('rowSelectChange', (selectedRows: any[], component: any) =>
+      this.ngZone.run(() => this.rowSelectChange.emit({ selectedRows, component })),
+    );
+    this.formio.on('page', (currentPage: number, component: any) =>
+      this.ngZone.run(() => this.page.emit({ currentPage, component })),
+    );
+    this.formio.on('changeItemsPerPage', (itemsPerPage: number) =>
+      this.ngZone.run(() => this.changeItemsPerPage.emit({ itemsPerPage })),
+    );
     this.formio.on('customEvent', (event: any) =>
-      this.ngZone.run(() => this.customEvent.emit(event))
+      this.ngZone.run(() => this.customEvent.emit(event)),
     );
 
     ['fileUploadingStart', 'fileUploadingEnd'].forEach((eventName, index) => {
       const status = !!index ? 'end' : 'start';
-      this.formio.on(eventName, () =>
-        this.ngZone.run(() => this.fileUploadingStatus.emit(status))
-      );
+      this.formio.on(eventName, () => this.ngZone.run(() => this.fileUploadingStatus.emit(status)));
     });
 
     this.formio.on('submit', (submission: any, saved: boolean) =>
-      this.ngZone.run(() => this.submitForm(submission, saved))
+      this.ngZone.run(() => this.submitForm(submission, saved)),
     );
-    this.formio.on('error', (err: any) => this.ngZone.run(() => {
-      this.submissionSuccess = false;
-      return this.onError(err);
-    }));
+    this.formio.on('error', (err: any) =>
+      this.ngZone.run(() => {
+        this.submissionSuccess = false;
+        return this.onError(err);
+      }),
+    );
     this.formio.on('render', () => this.ngZone.run(() => this.render.emit()));
     this.formio.on('formLoad', (loadedForm: any) =>
-      this.ngZone.run(() => this.formLoad.emit(loadedForm))
+      this.ngZone.run(() => this.formLoad.emit(loadedForm)),
     );
   }
 
@@ -213,19 +252,19 @@ export class FormioBaseComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     const extraTags = this.customTags ? this.customTags.tags : [];
-    const defaultOptions: FormioOptions = {
+    const defaultOptions: Form['options'] & AngularFormioOptions = {
       errors: {
-        message: 'Please fix the following errors before submitting.'
+        message: 'Please fix the following errors before submitting.',
       },
       alerts: {
-        submitMessage: 'Submission Complete.'
+        submitMessage: 'Submission Complete.',
       },
       disableAlerts: false,
       hooks: {
-        beforeSubmit: null
+        beforeSubmit: null,
       },
       sanitizeConfig: {
-        addTags: extraTags
+        addTags: extraTags,
       },
       alertsPosition: AlertsPosition.top,
     };
@@ -251,9 +290,7 @@ export class FormioBaseComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     if (this.refresh) {
-      this.refresh.subscribe((refresh: FormioRefreshValue) =>
-        this.onRefresh(refresh)
-      );
+      this.refresh.subscribe((refresh: FormioRefreshValue) => this.onRefresh(refresh));
     }
 
     if (this.error) {
@@ -264,7 +301,7 @@ export class FormioBaseComponent implements OnInit, OnChanges, OnDestroy {
       this.success.subscribe((message: string) => {
         this.alerts.setAlert({
           type: 'success',
-          message: message || get(this.options, 'alerts.submitMessage')
+          message: message || get(this.options, 'alerts.submitMessage'),
         });
       });
     }
@@ -297,11 +334,7 @@ export class FormioBaseComponent implements OnInit, OnChanges, OnDestroy {
         }
 
         // if a submission is also provided.
-        if (
-          isEmpty(this.submission) &&
-          this.service &&
-          this.service.formio.submissionId
-        ) {
+        if (isEmpty(this.submission) && this.service && this.service.formio.submissionId) {
           this.service.loadSubmission().subscribe(
             (submission: any) => {
               if (this.readOnly) {
@@ -309,11 +342,11 @@ export class FormioBaseComponent implements OnInit, OnChanges, OnDestroy {
               }
               this.submission = this.formio.submission = submission;
             },
-            err => this.onError(err)
+            (err) => this.onError(err),
           );
         }
       },
-      err => this.onError(err)
+      (err) => this.onError(err),
     );
   }
 
@@ -359,7 +392,7 @@ export class FormioBaseComponent implements OnInit, OnChanges, OnDestroy {
     this.formioReady.then(() => {
       if (changes.submission && changes.submission.currentValue) {
         this.formio.setSubmission(changes.submission.currentValue, {
-          fromSubmission: !changes.submission.firstChange
+          fromSubmission: !changes.submission.firstChange,
         });
       }
 
@@ -378,11 +411,13 @@ export class FormioBaseComponent implements OnInit, OnChanges, OnDestroy {
 
   onPrevPage(data: any) {
     this.alerts.setAlerts([]);
+    this.changeDetectorRef.markForCheck();
     this.prevPage.emit(data);
   }
 
   onNextPage(data: any) {
     this.alerts.setAlerts([]);
+    this.changeDetectorRef.markForCheck();
     this.nextPage.emit(data);
   }
 
@@ -392,7 +427,7 @@ export class FormioBaseComponent implements OnInit, OnChanges, OnDestroy {
 
     this.formio.setValue(fastCloneDeep(submission), {
       noValidate: true,
-      noCheck: true
+      noCheck: true,
     });
 
     if (saved) {
@@ -404,15 +439,17 @@ export class FormioBaseComponent implements OnInit, OnChanges, OnDestroy {
     if (!this.success) {
       this.alerts.setAlert({
         type: 'success',
-        message: get(this.options, 'alerts.submitMessage')
+        message: get(this.options, 'alerts.submitMessage'),
       });
     }
+    this.changeDetectorRef.markForCheck();
   }
 
   onError(err: any) {
     this.alerts.setAlerts([]);
     this.submitting = false;
     this.isLoading = false;
+    this.changeDetectorRef.markForCheck();
 
     if (!err) {
       return;
@@ -434,23 +471,23 @@ export class FormioBaseComponent implements OnInit, OnChanges, OnDestroy {
 
     // Iterate through each one and set the alerts array.
     errors.forEach((error: any) => {
-      const {
-        message,
-        paths,
-      } = error
+      const { message, paths } = error
         ? error.details
           ? {
-            message: error.details.map((detail) => detail.message),
-            paths: error.details.map((detail) => detail.path),
-          }
+              message: error.details.map((detail) => detail.message),
+              paths: error.details.map((detail) => detail.path),
+            }
           : {
-            message: error.message || error.toString(),
-            paths: error.path ? [error.path] : [],
-          }
+              message: error.message || error.toString(),
+              paths:
+                error.path || error.formattedKeyOrPath
+                  ? [error.path || error.formattedKeyOrPath]
+                  : [],
+            }
         : {
-          message: '',
-          paths: [],
-        };
+            message: '',
+            paths: [],
+          };
 
       let shouldErrorDisplay = true;
 
@@ -463,7 +500,7 @@ export class FormioBaseComponent implements OnInit, OnChanges, OnDestroy {
             components.forEach((comp) => comp.setCustomValidity(messageText, true));
             this.alerts.addAlert({
               type: 'danger',
-              message: message[index],
+              message: Array.isArray(message) ? message[index] : message,
               component,
             });
             shouldErrorDisplay = false;
@@ -471,17 +508,13 @@ export class FormioBaseComponent implements OnInit, OnChanges, OnDestroy {
         });
 
         if ((window as any).VPAT_ENABLED) {
-          if (typeof error ==='string' && this.formio.components) {
+          if (typeof error === 'string' && this.formio.components) {
             this.formio.components.forEach((comp) => {
               if (comp && comp.type !== 'button') {
                 comp.setCustomValidity(message, true);
               }
             });
           }
-        }
-
-        if (!this.noAlerts) {
-          this.formio.showErrors();
         }
       }
 
@@ -493,6 +526,10 @@ export class FormioBaseComponent implements OnInit, OnChanges, OnDestroy {
         });
       }
     });
+
+    if (this.formio && !this.noAlerts) {
+      this.formio.showErrors(errors);
+    }
   }
 
   focusOnComponet(key: any) {
@@ -503,12 +540,10 @@ export class FormioBaseComponent implements OnInit, OnChanges, OnDestroy {
 
   submitExecute(submission: object, saved = false) {
     if (this.service && !this.url && !saved) {
-      this.service
-        .saveSubmission(submission)
-        .subscribe(
-          (sub: {}) => this.onSubmit(sub, true),
-          err => this.onError(err)
-        );
+      this.service.saveSubmission(submission).subscribe(
+        (sub: {}) => this.onSubmit(sub, true),
+        (err) => this.onError(err),
+      );
     } else {
       this.onSubmit(submission, false);
     }
@@ -549,6 +584,6 @@ export class FormioBaseComponent implements OnInit, OnChanges, OnDestroy {
         this.onError(errors);
       }
     }
-    return this.change.emit({...value, flags, isModified});
+    return this.change.emit({ ...value, flags, isModified });
   }
 }

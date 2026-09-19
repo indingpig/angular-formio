@@ -3,9 +3,7 @@ import { Input, Output, ViewChild, TemplateRef, EventEmitter, Component } from '
 import { GridHeaderComponent } from './GridHeaderComponent';
 import { GridBodyComponent } from './GridBodyComponent';
 
-@Component({
-  template: ''
-})
+@Component({ template: '' })
 export class GridFooterComponent {
   @Input() header: GridHeaderComponent;
   @Input() body: GridBodyComponent;
@@ -14,7 +12,7 @@ export class GridFooterComponent {
   @Input() actionAllowed: any;
   @Output() pageChanged: EventEmitter<any>;
   @Output() createItem: EventEmitter<any>;
-  @ViewChild(TemplateRef, {static: true}) template: TemplateRef<any>;
+  @ViewChild(TemplateRef, { static: true }) template: TemplateRef<any>;
 
   public footerPositions = GridFooterPositions;
 

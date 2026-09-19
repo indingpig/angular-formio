@@ -14,14 +14,12 @@ import { extendRouter } from '@formio/angular';
   imports: [
     CommonModule,
     FormioModule,
-    RouterModule
-  ],
-  declarations: [
+    RouterModule,
     FormioAuthComponent,
     FormioAuthLoginComponent,
     FormioAuthRegisterComponent,
-    FormioResetPassComponent
-  ]
+    FormioResetPassComponent,
+  ],
 })
 export class FormioAuth {
   static forRoot(config?: FormioAuthRouteConfig): any {

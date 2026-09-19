@@ -1,8 +1,6 @@
 import { Pipe, PipeTransform } from '@angular/core';
 
-@Pipe({
-  name: 'timeSince'
-})
+@Pipe({ name: 'timeSince' })
 export class TimeSince implements PipeTransform {
   transform(date: Date): string {
     const elapsed = (new Date().getTime() - new Date(date).getTime()) / 1000;
@@ -11,7 +9,7 @@ export class TimeSince implements PipeTransform {
       return interval + ' year' + (interval > 1 ? 's' : '');
     }
     interval = Math.floor(elapsed / 2592000);
-    if (interval >= 1){
+    if (interval >= 1) {
       return interval + ' month' + (interval > 1 ? 's' : '');
     }
     interval = Math.floor(elapsed / 86400);

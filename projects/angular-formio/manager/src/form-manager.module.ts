@@ -27,10 +27,8 @@ import { extendRouter } from '@formio/angular';
     RouterModule,
     FormsModule,
     FormioGrid,
-    ModalModule.forRoot(),
-    PaginationModule.forRoot()
-  ],
-  declarations: [
+    ModalModule,
+    PaginationModule,
     FormManagerIndexComponent,
     FormManagerCreateComponent,
     FormManagerFormComponent,
@@ -41,8 +39,8 @@ import { extendRouter } from '@formio/angular';
     SubmissionEditComponent,
     SubmissionDeleteComponent,
     SubmissionViewComponent,
-    SubmissionIndexComponent
-  ]
+    SubmissionIndexComponent,
+  ],
 })
 export class FormManagerModule {
   static forChild(config?: FormManagerRouteConfig): any {

@@ -1,10 +1,13 @@
 import { Observable, Observer } from 'rxjs';
 import { FormioForm } from './formio.common';
-import { Formio } from '@formio/js/sdk';
+import { FormioCore as Formio } from '@formio/js';
 
 export class FormioService {
   public formio: any;
-  constructor(public url: string, public options?: object) {
+  constructor(
+    public url: string,
+    public options?: object,
+  ) {
     this.formio = new Formio(this.url, this.options);
   }
   requestWrapper(fn: any) {

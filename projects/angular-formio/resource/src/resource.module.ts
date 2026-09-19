@@ -19,19 +19,15 @@ import { extendRouter } from '@formio/angular';
     CommonModule,
     FormioModule,
     FormioGrid,
-    RouterModule
-  ],
-  declarations: [
+    RouterModule,
     FormioResourceComponent,
     FormioResourceCreateComponent,
     FormioResourceIndexComponent,
     FormioResourceViewComponent,
     FormioResourceEditComponent,
-    FormioResourceDeleteComponent
+    FormioResourceDeleteComponent,
   ],
-  providers: [
-    FormioAlerts
-  ]
+  providers: [FormioAlerts],
 })
 export class FormioResource {
   static forChild(config?: FormioResourceRouteConfig): any {

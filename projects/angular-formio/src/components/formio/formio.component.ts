@@ -1,8 +1,18 @@
-import { Component, OnInit, Optional, ViewEncapsulation, Input, NgZone, OnChanges } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  Optional,
+  ViewEncapsulation,
+  Input,
+  NgZone,
+  OnChanges,
+} from '@angular/core';
 import { FormioAppConfig } from '../../formio.config';
 import { Formio, Form } from '@formio/js';
 import { FormioBaseComponent } from '../../FormioBaseComponent';
 import { CustomTagsService } from '../../custom-tags.service';
+import { FormioLoaderComponent } from '../loader/formio.loader.component';
+import { FormioAlertsComponent } from '../alerts/formio.alerts.component';
 
 /* tslint:disable */
 @Component({
@@ -10,6 +20,7 @@ import { CustomTagsService } from '../../custom-tags.service';
   templateUrl: './formio.component.html',
   styleUrls: ['../../../../../node_modules/@formio/js/dist/formio.form.min.css'],
   encapsulation: ViewEncapsulation.None,
+  imports: [FormioLoaderComponent, FormioAlertsComponent],
 })
 /* tslint:enable */
 export class FormioComponent extends FormioBaseComponent implements OnInit, OnChanges {

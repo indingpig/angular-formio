@@ -1,8 +1,10 @@
-import { ExtendedComponentSchema, ValidateOptions } from '@formio/js';
+import { ExtendedComponentSchema, ValidateOptions } from '@formio/deprecated-types';
 import { AlertsPosition } from './types/alerts-position';
-export { ConditionalOptions, ValidateOptions } from '@formio/js/sdk';
 
-export interface ComponentOptions<T = any, V extends ValidateOptions = ValidateOptions> extends ExtendedComponentSchema<T> {
+export interface ComponentOptions<
+  T = any,
+  V extends ValidateOptions = ValidateOptions,
+> extends ExtendedComponentSchema<T> {
   validate?: V;
 }
 
@@ -19,12 +21,12 @@ export interface AccessSetting {
 }
 
 export interface FormioReport {
-  form: string,
-  roles: object,
-  access: object,
-  metadata: object,
-  data: object,
-  project: string,
+  form: string;
+  roles: object;
+  access: object;
+  metadata: object;
+  data: object;
+  project: string;
 }
 
 export interface FormioForm {
@@ -39,7 +41,7 @@ export interface FormioForm {
   tags?: string[];
   access?: AccessSetting[];
   submissionAccess?: AccessSetting[];
-  report?: FormioReport
+  report?: FormioReport;
 }
 
 export interface ComponentInstance {
@@ -66,26 +68,16 @@ export class FormioError {
   ) {}
 }
 
-export type FormioSubmissionCallback = (
-  error: FormioError,
-  submission: object
-) => void;
-export type FormioBeforeSubmit = (
-  submission: object,
-  callback: FormioSubmissionCallback
-) => void;
+export type FormioSubmissionCallback = (error: FormioError, submission: object) => void;
+export type FormioBeforeSubmit = (submission: object, callback: FormioSubmissionCallback) => void;
 
 export interface FormioHookOptions {
   beforeSubmit: FormioBeforeSubmit;
 }
 
-export interface FormioOptions {
+export interface AngularFormioOptions {
   errors?: ErrorsOptions;
   alerts?: AlertsOptions;
   alertsPosition?: AlertsPosition;
   disableAlerts?: boolean;
-  i18n?: object;
-  fileService?: object;
-  hooks?: FormioHookOptions;
-  sanitizeConfig?: any;
 }

@@ -1,19 +1,23 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { FormManagerService } from '../../form-manager.service';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 @Component({
-  templateUrl: './submission.component.html'
+  templateUrl: './submission.component.html',
+  imports: [RouterLink, RouterLinkActive, RouterOutlet],
 })
 export class SubmissionComponent implements OnInit {
   public downloadUrl: string;
+  private changeDetectorRef: ChangeDetectorRef = inject(ChangeDetectorRef);
+
   constructor(
     public service: FormManagerService,
-    public route: ActivatedRoute
-  ) { }
+    public route: ActivatedRoute,
+  ) {}
 
   setDownloadUrl(url) {
     this.downloadUrl = url;
+    this.changeDetectorRef.markForCheck();
   }
 
   ngOnInit() {
